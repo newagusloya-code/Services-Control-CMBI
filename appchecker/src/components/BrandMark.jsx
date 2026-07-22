@@ -1,8 +1,3 @@
 export function BrandMark() {
-  return (
-    <span className="brand-mark" aria-hidden="true">
-      <span>C</span>
-      <span>S</span>
-    </span>
-  );
+  return <img className="brand-mark" src="/cmbi-logo.jpg" alt="" aria-hidden="true" />;
 }

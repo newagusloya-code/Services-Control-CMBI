@@ -1,4 +1,6 @@
-# Revisión de fidelidad visual
+# Revisión de fidelidad visual de la base original
+
+> Esta bitácora y `dashboard-implementation.jpg` documentan la versión anterior al cambio a Service Control CMBI. La implementación actual conserva la estructura, pero añade Therapy, Configuración y la nueva paleta; requiere una captura nueva antes de considerar cerrada la verificación visual.
 
 Concepto: `dashboard-concept.png`  
 Implementación: `dashboard-implementation.jpg`  

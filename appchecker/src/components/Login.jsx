@@ -23,10 +23,10 @@ export function Login({ onLogin }) {
   return (
     <div className="login-screen">
       <section className="login-intro">
-        <div className="login-brand"><BrandMark /><span>CheckSport</span></div>
+        <div className="login-brand"><BrandMark /><span>Service Control CMBI</span></div>
         <div>
           <h1>El acceso correcto, en el momento correcto.</h1>
-          <p>Control local para alberca, gimnasio y sauna.</p>
+          <p>Control local para alberca, gimnasio, sauna y Therapy.</p>
         </div>
         <span className="local-note"><LockKeyhole size={17} /> La información permanece en este dispositivo</span>
       </section>

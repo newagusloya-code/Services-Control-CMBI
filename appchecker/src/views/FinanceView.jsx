@@ -2,15 +2,19 @@ import { Download, KeyRound, LockKeyhole, Plus, ShieldCheck, X } from 'lucide-re
 import { useMemo, useState } from 'react';
 import { decryptJson, encryptJson } from '../lib/crypto';
 import { loadFinanceCipher, saveFinanceCipher } from '../lib/db';
+import { SERVICES } from '../config';
+import { sessionPrice } from '../lib/domain';
 
-export function FinanceView({ currentUser, onToast }) {
+export function FinanceView({ currentUser, sessions, settings, onToast }) {
   const [password, setPassword] = useState('');
   const [key, setKey] = useState('');
   const [payments, setPayments] = useState(null);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ member: '', concept: 'Membresía', amount: '', method: 'Tarjeta' });
-  const total = useMemo(() => (payments ?? []).reduce((sum, payment) => sum + payment.amount, 0), [payments]);
+  const therapySessions = useMemo(() => sessions.filter((session) => session.service === 'therapy'), [sessions]);
+  const therapyRevenue = useMemo(() => therapySessions.reduce((sum, session) => sum + sessionPrice(session, settings), 0), [settings, therapySessions]);
+  const total = useMemo(() => (payments ?? []).reduce((sum, payment) => sum + payment.amount, 0) + therapyRevenue, [payments, therapyRevenue]);
 
   const unlock = async (event) => {
     event.preventDefault();
@@ -55,7 +59,7 @@ export function FinanceView({ currentUser, onToast }) {
     if (!cipher) return;
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([JSON.stringify(cipher, null, 2)], { type: 'application/json' }));
-    link.download = `checksport-ingresos-cifrados-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `service-control-cmbi-ingresos-cifrados-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
     onToast('Archivo cifrado descargado.', 'success');
@@ -78,7 +82,11 @@ export function FinanceView({ currentUser, onToast }) {
   return (
     <div className="standard-view">
       <div className="view-heading"><div><h2>Ingresos</h2><p>Los importes permanecen cifrados cuando la sección está bloqueada.</p></div><div className="heading-actions"><button className="secondary-button" onClick={exportEncrypted}><Download size={18} /> Exportar cifrado</button><button className="primary-button" onClick={() => setAdding(true)}><Plus size={18} /> Registrar ingreso</button></div></div>
-      <div className="report-summary finance-summary"><div><span>Total registrado</span><strong>{total.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</strong></div><div><span>Movimientos</span><strong>{payments.length}</strong></div><div><span>Estado</span><strong className="encrypted-state"><ShieldCheck size={20} /> Descifrado</strong></div></div>
+      <div className="report-summary finance-summary"><div><span>Total registrado</span><strong>{total.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</strong></div><div><span>Ingresos de Therapy</span><strong>{therapyRevenue.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</strong></div><div><span>Estado</span><strong className="encrypted-state"><ShieldCheck size={20} /> Descifrado</strong></div></div>
+      <section className="service-income-section panel-frame">
+        <div className="section-heading"><h2>Servicios de Therapy <span>{therapySessions.length}</span></h2><p>Calculados con los precios vigentes de Configuración.</p></div>
+        <div className="table-scroll"><table><thead><tr><th>Fecha</th><th>Miembro</th><th>Terapia</th><th>Importe</th></tr></thead><tbody>{therapySessions.map((session) => <tr key={session.id}><td>{new Date(session.checkIn).toLocaleDateString('es-MX')}</td><td>{session.memberName}</td><td>{session.therapyType ?? SERVICES.therapy.label}</td><td><strong>{sessionPrice(session, settings).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</strong></td></tr>)}{!therapySessions.length && <tr><td colSpan="4" className="empty-row">Todavía no hay sesiones de Therapy.</td></tr>}</tbody></table></div>
+      </section>
       <div className="table-frame table-scroll"><table><thead><tr><th>Fecha</th><th>Miembro</th><th>Concepto</th><th>Método</th><th>Importe</th><th>Registró</th></tr></thead><tbody>{payments.map((payment) => <tr key={payment.id}><td>{new Date(payment.date).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}</td><td>{payment.member}</td><td>{payment.concept}</td><td>{payment.method}</td><td><strong>{payment.amount.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</strong></td><td>{payment.registeredBy}</td></tr>)}{!payments.length && <tr><td className="empty-row" colSpan="6">Todavía no hay ingresos registrados.</td></tr>}</tbody></table></div>
       {adding && <div className="modal-backdrop"><form className="modal-panel payment-modal" onSubmit={savePayment}><div className="modal-heading"><div><h2>Registrar ingreso</h2><p>Se cifrará al guardarlo.</p></div><button type="button" className="icon-button" onClick={() => setAdding(false)} aria-label="Cerrar" title="Cerrar"><X size={20} /></button></div><div className="form-stack"><label>Miembro<input value={draft.member} onChange={(event) => setDraft({ ...draft, member: event.target.value })} autoFocus /></label><label>Concepto<input value={draft.concept} onChange={(event) => setDraft({ ...draft, concept: event.target.value })} /></label><label>Monto<input type="number" min="0" step="0.01" value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} /></label><label>Método<select value={draft.method} onChange={(event) => setDraft({ ...draft, method: event.target.value })}><option>Tarjeta</option><option>Efectivo</option><option>Transferencia</option></select></label></div><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setAdding(false)}>Cancelar</button><button className="primary-button">Cifrar y guardar</button></div></form></div>}
     </div>

@@ -1,8 +1,8 @@
-import { DoorOpen, Dumbbell, Waves } from 'lucide-react';
+import { DoorOpen, Dumbbell, HeartPulse, Waves } from 'lucide-react';
 import { SERVICES } from '../config';
 import { occupancyFor } from '../lib/domain';
 
-const ICONS = { alberca: Waves, gimnasio: Dumbbell, sauna: DoorOpen };
+const ICONS = { alberca: Waves, gimnasio: Dumbbell, sauna: DoorOpen, therapy: HeartPulse };
 
 export function OccupancyBand({ sessions }) {
   return (
@@ -11,7 +11,7 @@ export function OccupancyBand({ sessions }) {
         const count = occupancyFor(sessions, id);
         const available = Math.max(0, service.capacity - count);
         const ratio = count / service.capacity;
-        const tone = ratio >= 0.85 ? 'danger' : ratio >= 0.65 ? 'warning' : id === 'gimnasio' ? 'info' : 'success';
+        const tone = ratio >= 0.85 ? 'danger' : ratio >= 0.65 ? 'warning' : id === 'gimnasio' ? 'info' : id === 'therapy' ? 'therapy' : 'success';
         const Icon = ICONS[id];
         return (
           <div className={`occupancy-item occupancy-${tone}`} key={id}>

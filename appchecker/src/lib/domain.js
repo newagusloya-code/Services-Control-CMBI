@@ -31,6 +31,13 @@ export function validateCheckIn({ member, service, sessions }) {
   return null;
 }
 
+export function validateTherapyDetails(service, therapyType) {
+  if (service === 'therapy' && !therapyType?.trim()) {
+    return 'Escribe la terapia que se realizará.';
+  }
+  return null;
+}
+
 export function getSessionStatus(session, now = Date.now()) {
   const elapsed = Math.max(0, Math.floor((now - new Date(session.checkIn).getTime()) / 60_000));
   const limit = SERVICES[session.service]?.minutes ?? 0;
@@ -50,11 +57,59 @@ export function allocateLocker(lockers, service, memberId) {
   };
 }
 
+export function allocateSessionResource({ lockers, sessions, service, memberId }) {
+  if (service === 'therapy') {
+    const occupiedRooms = new Set(activeSessions(sessions)
+      .filter((session) => session.service === 'therapy')
+      .map((session) => session.room));
+    const room = SERVICES.therapy.rooms.find((item) => !occupiedRooms.has(item)) ?? null;
+    return { lockers, resourceId: room, room };
+  }
+
+  const allocation = allocateLocker(lockers, service, memberId);
+  return { lockers: allocation.lockers, resourceId: allocation.lockerId, locker: allocation.lockerId };
+}
+
 export function releaseLocker(lockers, lockerId) {
+  if (!lockerId) return lockers;
   return lockers.map((item) => item.id === lockerId ? { ...item, status: 'free', memberId: null } : item);
 }
 
-export function csvEscape(value) {
+export function getSessionAssignment(session) {
+  return session.room ?? session.locker ?? '—';
+}
+
+export function normalizeTherapyType(value) {
+  return value.trim().toLocaleLowerCase('es');
+}
+
+export function therapyPriceFor(prices, therapyType) {
+  if (!therapyType) return 0;
+  return Number(prices?.[normalizeTherapyType(therapyType)]?.price ?? 0);
+}
+
+export function sessionPrice(session, settings) {
+  if (session.service !== 'therapy') return Number(session.amount ?? 0);
+  return therapyPriceFor(settings?.therapyPrices, session.therapyType);
+}
+
+export function daysRemaining(expiry, now = new Date()) {
+  if (!expiry) return 0;
+  const end = new Date(`${expiry}T23:59:59`);
+  return Math.max(0, Math.ceil((end - now) / 86_400_000));
+}
+
+export function generateMemberId(members, now = Date.now()) {
+  const used = new Set(members.map((member) => member.id));
+  const seed = Number(String(now).slice(-4));
+  for (let offset = 0; offset < 10_000; offset += 1) {
+    const id = `CMBI-${String((seed + offset) % 10_000).padStart(4, '0')}`;
+    if (!used.has(id)) return id;
+  }
+  return `CMBI-${now}`;
+}
+
+export function csvEscape(value, delimiter = ',') {
   const text = String(value ?? '');
-  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  return text.includes(delimiter) || /["\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }

@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   Search,
+  Settings,
   Users,
   X,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ const NAV_ICONS = {
   lockers: LockKeyhole,
   reports: Dumbbell,
   finance: CircleDollarSign,
+  settings: Settings,
 };
 
 export function AppShell({ user, page, setPage, members, onSelectMember, onLogout, children }) {
@@ -49,7 +51,7 @@ export function AppShell({ user, page, setPage, members, onSelectMember, onLogou
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-brand">
           <BrandMark />
-          <span>CheckSport</span>
+          <span>Service Control CMBI</span>
           <button className="sidebar-close icon-button" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú" title="Cerrar menú">
             <X size={20} />
           </button>

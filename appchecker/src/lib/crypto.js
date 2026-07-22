@@ -22,6 +22,44 @@ async function deriveKey(password, salt) {
   );
 }
 
+export async function importAesKey(rawBytes) {
+  return crypto.subtle.importKey('raw', rawBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+export async function encryptJsonWithKey(value, key) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(JSON.stringify(value)),
+  );
+  return {
+    version: 1,
+    iv: toBase64(iv),
+    ciphertext: toBase64(new Uint8Array(encrypted)),
+  };
+}
+
+export async function decryptJsonWithKey(payload, key) {
+  const iv = fromBase64(payload.iv);
+  const data = fromBase64(payload.ciphertext);
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+  return JSON.parse(decoder.decode(decrypted));
+}
+
+export async function createWrappedBackupKey(password) {
+  const raw = crypto.getRandomValues(new Uint8Array(32));
+  return {
+    key: await importAesKey(raw),
+    wrappedKey: await encryptJson(Array.from(raw), password),
+  };
+}
+
+export async function unwrapBackupKey(wrappedKey, password) {
+  const raw = await decryptJson(wrappedKey, password);
+  return importAesKey(new Uint8Array(raw));
+}
+
 export async function encryptJson(value, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));

@@ -16,19 +16,19 @@ const futureDate = (months) => {
 
 export function createSeedState() {
   const members = [
-    { id: 'CMBI-1042', name: 'Mariana López', phone: '664 555 1042', email: 'mariana@example.test', plan: 'Integral', services: ['alberca', 'gimnasio', 'sauna'], expiry: futureDate(2), notes: '' },
-    { id: 'CMGR-0891', name: 'Roberto Díaz', phone: '664 555 0891', email: 'roberto@example.test', plan: 'Activo', services: ['gimnasio', 'alberca'], expiry: futureDate(4), notes: '' },
-    { id: 'CMIN-0765', name: 'Laura Méndez', phone: '664 555 0765', email: 'laura@example.test', plan: 'Integral', services: ['gimnasio', 'alberca', 'sauna'], expiry: futureDate(1), notes: '' },
-    { id: 'CMGR-0632', name: 'Diego Ruiz', phone: '664 555 0632', email: 'diego@example.test', plan: 'Esencial', services: ['gimnasio'], expiry: futureDate(3), notes: '' },
-    { id: 'CMBI-1120', name: 'Carlos Herrera', phone: '664 555 1120', email: 'carlos@example.test', plan: 'Activo', services: ['gimnasio', 'alberca'], expiry: futureDate(5), notes: '' },
-    { id: 'CMBI-1198', name: 'Elena Torres', phone: '664 555 1198', email: 'elena@example.test', plan: 'Integral', services: ['gimnasio', 'alberca', 'sauna'], expiry: futureDate(-1), notes: 'Membresía vencida' },
+    { id: 'CMBI-1042', name: 'Mariana López', phone: '664 555 1042', age: 34, plan: 'Integral', services: ['alberca', 'gimnasio', 'sauna', 'therapy'], expiry: futureDate(2), notes: '' },
+    { id: 'CMGR-0891', name: 'Roberto Díaz', phone: '664 555 0891', age: 42, plan: 'Activo', services: ['gimnasio', 'alberca'], expiry: futureDate(4), notes: '' },
+    { id: 'CMIN-0765', name: 'Laura Méndez', phone: '664 555 0765', age: 29, plan: 'Integral', services: ['gimnasio', 'alberca', 'sauna', 'therapy'], expiry: futureDate(1), notes: '' },
+    { id: 'CMGR-0632', name: 'Diego Ruiz', phone: '664 555 0632', age: 38, plan: 'Esencial', services: ['gimnasio'], expiry: futureDate(3), notes: '' },
+    { id: 'CMBI-1120', name: 'Carlos Herrera', phone: '664 555 1120', age: 46, plan: 'Activo', services: ['gimnasio', 'alberca'], expiry: futureDate(5), notes: '' },
+    { id: 'CMBI-1198', name: 'Elena Torres', phone: '664 555 1198', age: 51, plan: 'Integral', services: ['gimnasio', 'alberca', 'sauna', 'therapy'], expiry: futureDate(-1), notes: 'Membresía vencida' },
   ];
 
   const sessions = [
     { id: crypto.randomUUID(), memberId: 'CMBI-1042', memberName: 'Mariana López', service: 'alberca', checkIn: minutesAgo(28), checkOut: null, locker: 'A-12' },
     { id: crypto.randomUUID(), memberId: 'CMGR-0891', memberName: 'Roberto Díaz', service: 'gimnasio', checkIn: minutesAgo(78), checkOut: null, locker: 'G-07' },
-    { id: crypto.randomUUID(), memberId: 'CMIN-0765', memberName: 'Laura Méndez', service: 'sauna', checkIn: minutesAgo(18), checkOut: null, locker: 'S-03' },
-    { id: crypto.randomUUID(), memberId: 'CMGR-0632', memberName: 'Diego Ruiz', service: 'gimnasio', checkIn: minutesAgo(145), checkOut: null, locker: 'G-21' },
+    { id: crypto.randomUUID(), memberId: 'CMIN-0765', memberName: 'Laura Méndez', service: 'sauna', checkIn: minutesAgo(18), checkOut: null, locker: 'S-01' },
+    { id: crypto.randomUUID(), memberId: 'CMGR-0632', memberName: 'Diego Ruiz', service: 'gimnasio', checkIn: minutesAgo(145), checkOut: null, locker: 'G-15' },
     { id: crypto.randomUUID(), memberId: 'CMBI-1120', memberName: 'Carlos Herrera', service: 'gimnasio', checkIn: minutesAgo(190), checkOut: minutesAgo(105), locker: 'G-11' },
   ];
 
@@ -49,8 +49,8 @@ export function createSeedState() {
     });
   }
 
-  const lockers = Object.values(SERVICES).flatMap((service) =>
-    Array.from({ length: service.capacity === 8 ? 8 : 20 }, (_, index) => ({
+  const lockers = Object.values(SERVICES).filter((service) => service.lockerPrefix).flatMap((service) =>
+    Array.from({ length: service.lockerCount }, (_, index) => ({
       id: `${service.lockerPrefix}-${String(index + 1).padStart(2, '0')}`,
       status: 'free',
       memberId: null,
@@ -66,7 +66,7 @@ export function createSeedState() {
   });
 
   return {
-    version: 1,
+    version: 2,
     members,
     sessions,
     lockers,
@@ -74,6 +74,9 @@ export function createSeedState() {
     settings: {
       sickarEndpoint: '',
       printerMode: 'browser',
+      therapyPrices: {},
+      backupSchedule: 'manual',
+      lastBackupAt: null,
     },
   };
 }

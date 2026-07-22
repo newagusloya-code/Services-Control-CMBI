@@ -9,10 +9,13 @@ import { FinanceView } from './views/FinanceView';
 import { LockersView } from './views/LockersView';
 import { MembersView } from './views/MembersView';
 import { ReportsView } from './views/ReportsView';
+import { SettingsView } from './views/SettingsView';
+
+const USER_STORAGE_KEY = 'service-control-cmbi-user';
 
 const getStoredUser = () => {
   try {
-    return JSON.parse(sessionStorage.getItem('checksport-user'));
+    return JSON.parse(sessionStorage.getItem(USER_STORAGE_KEY) ?? sessionStorage.getItem('checksport-user'));
   } catch {
     return null;
   }
@@ -39,26 +42,29 @@ export default function App() {
 
   const login = (nextUser) => {
     const safeUser = { username: nextUser.username, name: nextUser.name, role: nextUser.role };
-    sessionStorage.setItem('checksport-user', JSON.stringify(safeUser));
+    sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(safeUser));
+    sessionStorage.removeItem('checksport-user');
     setUser(safeUser);
   };
 
   const logout = () => {
+    sessionStorage.removeItem(USER_STORAGE_KEY);
     sessionStorage.removeItem('checksport-user');
     setUser(null);
     setPage('dashboard');
   };
 
   if (!user) return <Login onLogin={login} />;
-  if (!app.state) return <div className="app-loading"><span className="loading-mark">CS</span><p>Preparando control de acceso...</p></div>;
+  if (!app.state) return <div className="app-loading"><span className="loading-mark">SC</span><p>Preparando control de servicios...</p></div>;
 
   const view = {
     dashboard: <DashboardView state={app.state} initialMember={selectedMember} onCheckIn={app.checkIn} onCheckOut={app.checkOut} onToast={notify} onOpenReports={() => setPage('reports')} />,
     checkin: <CheckInView state={app.state} initialMember={selectedMember} onCheckIn={app.checkIn} onCheckOut={app.checkOut} onToast={notify} />,
     members: <MembersView members={app.state.members} onSave={app.saveMember} onDelete={app.deleteMember} onToast={notify} />,
     lockers: <LockersView lockers={app.state.lockers} onToggle={app.toggleLocker} onToast={notify} />,
-    reports: <ReportsView sessions={app.state.sessions} onToast={notify} />,
-    finance: <FinanceView currentUser={user} onToast={notify} />,
+    reports: <ReportsView sessions={app.state.sessions} settings={app.state.settings} onToast={notify} />,
+    finance: <FinanceView currentUser={user} sessions={app.state.sessions} settings={app.state.settings} onToast={notify} />,
+    settings: <SettingsView settings={app.state.settings} onSave={app.saveSettings} onPrepareBackups={app.prepareBackups} onCreateBackup={app.createBackup} onRestoreBackup={app.restoreBackup} onGetBackupStatus={app.getBackupStatus} onToast={notify} />,
   }[page];
 
   return (

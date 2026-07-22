@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Edit3, Plus, Search, Trash2, X } from 'lucide-react';
 import { PLAN_SERVICES, SERVICES } from '../config';
-import { isMemberActive } from '../lib/domain';
+import { generateMemberId, isMemberActive } from '../lib/domain';
+import { MembershipCard } from '../components/MembershipCard';
 
-const emptyMember = () => {
+const emptyMember = (members) => {
   const expiry = new Date();
   expiry.setFullYear(expiry.getFullYear() + 1);
   return {
-    id: '',
+    id: generateMemberId(members),
     name: '',
     phone: '',
-    email: '',
+    age: '',
     plan: 'Activo',
     services: [...PLAN_SERVICES.Activo],
     expiry: expiry.toISOString().slice(0, 10),
@@ -21,6 +22,7 @@ const emptyMember = () => {
 export function MembersView({ members, onSave, onDelete, onToast }) {
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null);
+  const [cardMember, setCardMember] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const filtered = useMemo(() => {
     const value = query.trim().toLocaleLowerCase('es');
@@ -29,19 +31,20 @@ export function MembersView({ members, onSave, onDelete, onToast }) {
   }, [members, query]);
 
   const openNew = () => {
-    const next = emptyMember();
-    next.id = `CMBI-${String(Date.now()).slice(-4)}`;
-    setEditing(next);
+    setEditing(emptyMember(members));
   };
 
   const save = async (event) => {
     event.preventDefault();
-    if (!editing.name.trim() || !editing.expiry) {
-      onToast('Nombre y vigencia son obligatorios.', 'error');
+    const age = Number(editing.age);
+    if (!editing.name.trim() || !editing.phone.trim() || !Number.isInteger(age) || age < 1 || age > 120 || !editing.plan || !editing.services.length || !editing.expiry) {
+      onToast('Nombre, WhatsApp, edad, plan, servicio y vigencia son obligatorios.', 'error');
       return;
     }
-    await onSave({ ...editing, name: editing.name.trim() });
+    const saved = { ...editing, name: editing.name.trim(), phone: editing.phone.trim(), age };
+    await onSave(saved);
     setEditing(null);
+    setCardMember(saved);
     onToast('Miembro guardado.', 'success');
   };
 
@@ -71,7 +74,7 @@ export function MembersView({ members, onSave, onDelete, onToast }) {
           <tbody>{filtered.map((member) => (
             <tr key={member.id}>
               <td><span className="table-person"><span className="mini-avatar">{member.name.slice(0, 1)}</span><span><strong>{member.name}</strong><small>{member.id}</small></span></span></td>
-              <td><strong className="cell-main">{member.phone}</strong><small className="cell-sub">{member.email}</small></td>
+              <td><strong className="cell-main">{member.phone}</strong><small className="cell-sub">{member.age ? `${member.age} años` : 'Edad pendiente'}</small></td>
               <td>{member.plan}</td>
               <td><span className="services-text">{member.services.map((id) => SERVICES[id]?.label).join(', ')}</span></td>
               <td>{new Date(`${member.expiry}T12:00:00`).toLocaleDateString('es-MX')}</td>
@@ -88,9 +91,9 @@ export function MembersView({ members, onSave, onDelete, onToast }) {
             <div className="modal-heading"><div><h2>{members.some((member) => member.id === editing.id) ? 'Editar miembro' : 'Nuevo miembro'}</h2><p>Los cambios se guardan en este dispositivo.</p></div><button type="button" className="icon-button" onClick={() => setEditing(null)} aria-label="Cerrar" title="Cerrar"><X size={20} /></button></div>
             <div className="form-grid">
               <label className="span-2">Nombre completo<input value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} autoFocus /></label>
-              <label>ID<input value={editing.id} onChange={(event) => setEditing({ ...editing, id: event.target.value })} disabled={members.some((member) => member.id === editing.id)} /></label>
-              <label>Teléfono<input value={editing.phone} onChange={(event) => setEditing({ ...editing, phone: event.target.value })} /></label>
-              <label className="span-2">Correo<input type="email" value={editing.email} onChange={(event) => setEditing({ ...editing, email: event.target.value })} /></label>
+              <label>ID digital<input value={editing.id} disabled /></label>
+              <label>Teléfono (WhatsApp)<input type="tel" value={editing.phone} onChange={(event) => setEditing({ ...editing, phone: event.target.value })} required /></label>
+              <label>Edad<input type="number" min="1" max="120" value={editing.age} onChange={(event) => setEditing({ ...editing, age: event.target.value })} required /></label>
               <label>Plan<select value={editing.plan} onChange={(event) => setEditing({ ...editing, plan: event.target.value, services: [...PLAN_SERVICES[event.target.value]] })}>{Object.keys(PLAN_SERVICES).map((plan) => <option key={plan}>{plan}</option>)}</select></label>
               <label>Vigencia<input type="date" value={editing.expiry} onChange={(event) => setEditing({ ...editing, expiry: event.target.value })} /></label>
               <fieldset className="span-2"><legend>Servicios incluidos</legend><div className="checkbox-row">{Object.entries(SERVICES).map(([id, service]) => <label key={id}><input type="checkbox" checked={editing.services.includes(id)} onChange={(event) => setEditing({ ...editing, services: event.target.checked ? [...editing.services, id] : editing.services.filter((item) => item !== id) })} />{service.label}</label>)}</div></fieldset>
@@ -103,6 +106,16 @@ export function MembersView({ members, onSave, onDelete, onToast }) {
 
       {deleteTarget && (
         <div className="modal-backdrop"><div className="modal-panel confirm-modal"><h2>Eliminar miembro</h2><p>Se eliminará a <strong>{deleteTarget.name}</strong>. El historial de visitas se conservará.</p><div className="modal-actions"><button className="secondary-button" onClick={() => setDeleteTarget(null)}>Cancelar</button><button className="danger-button" onClick={remove}>Eliminar</button></div></div></div>
+      )}
+
+      {cardMember && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setCardMember(null)}>
+          <div className="modal-panel membership-card-modal">
+            <div className="modal-heading"><div><h2>Credencial generada</h2><p>Lista para consultar desde este dispositivo.</p></div><button type="button" className="icon-button" onClick={() => setCardMember(null)} aria-label="Cerrar" title="Cerrar"><X size={20} /></button></div>
+            <MembershipCard member={cardMember} />
+            <div className="modal-actions"><button className="primary-button" onClick={() => setCardMember(null)}>Listo</button></div>
+          </div>
+        </div>
       )}
     </div>
   );

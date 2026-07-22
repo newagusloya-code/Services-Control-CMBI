@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, CircleCheck, DoorOpen, Dumbbell, Search, Waves } from 'lucide-react';
+import { Check, CircleCheck, DoorOpen, Dumbbell, HeartPulse, Search, Waves } from 'lucide-react';
 import { SERVICES } from '../config';
 import { isMemberActive } from '../lib/domain';
 
-const SERVICE_ICONS = { alberca: Waves, gimnasio: Dumbbell, sauna: DoorOpen };
+const SERVICE_ICONS = { alberca: Waves, gimnasio: Dumbbell, sauna: DoorOpen, therapy: HeartPulse };
 
 export function AccessWorkflow({ members, initialMember, onCheckIn, onToast, onTicket, compact = false }) {
   const [query, setQuery] = useState(initialMember?.name ?? 'Mariana López');
   const [member, setMember] = useState(initialMember ?? members[0] ?? null);
   const [service, setService] = useState('alberca');
+  const [therapyType, setTherapyType] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -40,14 +41,15 @@ export function AccessWorkflow({ members, initialMember, onCheckIn, onToast, onT
 
   const register = async () => {
     setBusy(true);
-    const result = await onCheckIn(member, service);
+    const result = await onCheckIn(member, service, { therapyType });
     setBusy(false);
     if (!result.ok) {
       onToast(result.message, 'error');
       return;
     }
     onTicket?.(result.session);
-    onToast(`Entrada registrada. Locker ${result.session.locker ?? 'sin asignar'}.`, 'success');
+    const assignment = result.session.room ?? result.session.locker;
+    onToast(`Entrada registrada. ${SERVICES[service].assignmentLabel} ${assignment}.`, 'success');
   };
 
   return (
@@ -85,6 +87,18 @@ export function AccessWorkflow({ members, initialMember, onCheckIn, onToast, onT
             );
           })}
         </div>
+        {service === 'therapy' && (
+          <label className="therapy-field" htmlFor="therapy-type">
+            Terapia específica
+            <input
+              id="therapy-type"
+              value={therapyType}
+              onChange={(event) => setTherapyType(event.target.value)}
+              placeholder="Ej. masaje relajante"
+              autoComplete="off"
+            />
+          </label>
+        )}
         <button className="primary-button full-button" onClick={search}><Search size={18} /> Buscar miembro</button>
       </section>
 
